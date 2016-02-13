@@ -209,6 +209,107 @@
             
               
                 
+                <a class="post-title-link" href="/2016/02/13/Using-Kotlin-Extensions-for-Rx-ifying/" itemprop="url">
+                  Using Kotlin Extensions for Rx-ifying
+                </a>
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">Posted on</span>
+            <time itemprop="dateCreated" datetime="2016-02-13T13:57:52-06:00" content="2016-02-13">
+              2016-02-13
+            </time>
+          </span>
+
+          
+
+          
+
+          
+
+          
+          
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <p>Kotlin and Reactive Extensions (Rx) are the new hotness in Android development, and not without reason.
+Both technologies are loved for being concise, expressive and powerful.
+This is especially useful in the Android world where APIs can be long-winded and filled with ceremony.</p>
+<p>&lt;!-- more --&gt;</p>
+<p>One of the main features that I've fallen in love with while using Kotlin is class extensions (<a href="https://kotlinlang.org/docs/reference/extensions.html" target="_blank" rel="external">docs</a>).
+This feature comes in handy quite often when working with APIs that are not yet RxJava compatible in a project that is using RxJava extensively.</p>
+<p>Let's take a look at a simple example when using the <a href="https://github.com/umano/AndroidSlidingUpPanel" target="_blank" rel="external">SlidingUpPanel</a> library.</p>
+<p>One of the things you might want to do when using this library is listen for panel events such as expanding and collapsing of the panel.</p>
+<p>When doing this without RxJava you get the following codeblock</p>
+<p><figure class="highlight kotlin"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">linkPanel.setPanelSlideListener(<span class="keyword">object</span>: SlidingUpPanelLayout.PanelSlideListener &#123;</span><br><span class="line">	<span class="keyword">override</span> <span class="function"><span class="keyword">fun</span> <span class="title">onPanelExpanded</span><span class="params">(p0 : <span class="typename">View?</span>)</span> &#123;</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">override</span> <span class="function"><span class="keyword">fun</span> <span class="title">onPanelSlide</span><span class="params">(p0 : <span class="typename">View?, p1 : Float</span>)</span> &#123;</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">override</span> <span class="function"><span class="keyword">fun</span> <span class="title">onPanelCollapsed</span><span class="params">(p0 : <span class="typename">View?</span>)</span> &#123;</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">override</span> <span class="function"><span class="keyword">fun</span> <span class="title">onPanelHidden</span><span class="params">(p0 : <span class="typename">View?</span>)</span> &#123;</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">override</span> <span class="function"><span class="keyword">fun</span> <span class="title">onPanelAnchored</span><span class="params">(p0 : <span class="typename">View?</span>)</span> &#123;</span></span><br><span class="line">	&#125;</span><br><span class="line">&#125;)</span><br></pre></td></tr></table></figure></p>
+<p>This is a required implementation when you might only care about the expanded and collapsed state.</p>
+<p>So, lets move this into a Kotlin extension:</p>
+<p>We're going to start with a data class to model the panel events:</p>
+<p><figure class="highlight kotlin"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">enum</span> <span class="class"><span class="keyword">class</span> <span class="title">PanelEvent</span> </span>&#123; COLLAPSED, EXPANDED, HIDDEN, ANCHORED, SLIDE &#125;</span><br><span class="line">data <span class="class"><span class="keyword">class</span> <span class="title">PanelData</span></span>(<span class="variable"><span class="keyword">val</span> event</span> : PanelEvent, <span class="variable"><span class="keyword">val</span> panel</span> : View?, <span class="variable"><span class="keyword">val</span> slideOffset</span> : <span class="typename">Float</span>? = <span class="literal">null</span>)</span><br></pre></td></tr></table></figure></p>
+<p>Now the actual class extension:</p>
+<p><figure class="highlight"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">fun SlidingUpPanelLayout.panelSlides() : Observable&lt;PanelData&gt; &#123;</span><br><span class="line">	return Observable.defer&lt;PanelData&gt; &#123;</span><br><span class="line">		Observable.create &#123;</span><br><span class="line">			if (!it.isUnsubscribed) &#123;</span><br><span class="line">				setPanelSlideListener(object : SlidingUpPanelLayout.PanelSlideListener &#123;</span><br><span class="line">					override fun onPanelSlide(panel : View?, slideOffset : Float) = it.onNext(PanelData(PanelEvent.SLIDE, panel, slideOffset))</span><br><span class="line">					override fun onPanelExpanded(panel : View?) = it.onNext(PanelData(PanelEvent.EXPANDED, panel))</span><br><span class="line">					override fun onPanelCollapsed(panel : View?) = it.onNext(PanelData(PanelEvent.COLLAPSED, panel))</span><br><span class="line">					override fun onPanelHidden(panel : View?) = it.onNext(PanelData(PanelEvent.HIDDEN, panel))</span><br><span class="line">					override fun onPanelAnchored(panel : View?) = it.onNext(PanelData(PanelEvent.ANCHORED, panel))</span><br><span class="line">				&#125;)</span><br><span class="line"></span><br><span class="line">				it.add(object : MainThreadSubscription() &#123;</span><br><span class="line">					//we should null the listener when the subscriber unsubscribes</span><br><span class="line">					override fun onUnsubscribe() = setPanelSlideListener(null)</span><br><span class="line">				&#125;)</span><br><span class="line">			&#125;</span><br><span class="line">	&#125;&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>And the calling code:</p>
+<p><figure class="highlight kotlin"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">linkPanel.panelSlides()</span><br><span class="line">	.map &#123; it.event &#125;</span><br><span class="line">	.filter &#123;it == PanelEvent.COLLAPSED &#125;</span><br><span class="line">	.subscribe &#123;</span><br><span class="line">		Timber.d(<span class="string">"panel closed"</span>)</span><br><span class="line">	&#125;</span><br></pre></td></tr></table></figure></p>
+<p>Now you have the power of RxJava's composibility and concise syntax availble to you, without losing the context of the action itself.</p>
+<p>For more examples, checkout <a href="https://www.github.com/JakeWharton/RxBinding" target="_blank" rel="external">RxBinding</a> which has extensions for Android framework classes.</p>
+
+          
+        
+      
+    </div>
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+
+
+    
+      
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                
                 <a class="post-title-link" href="/2015/07/12/using-recyclerview-with-multiple-items/" itemprop="url">
                   Using RecyclerView With Multiple Items
                 </a>
@@ -605,7 +706,7 @@ In order to improve the earlier animation, I created a <a href="https://develope
         <nav class="site-state motion-element">
           <div class="site-state-item site-state-posts">
             <a href="/">
-              <span class="site-state-item-count">3</span>
+              <span class="site-state-item-count">4</span>
               <span class="site-state-item-name">posts</span>
             </a>
           </div>
@@ -619,6 +720,13 @@ In order to improve the earlier animation, I created a <a href="https://develope
             </div>
           
 
+          
+            <div class="site-state-item site-state-tags">
+              
+                <span class="site-state-item-count">1</span>
+                <span class="site-state-item-name">tags</span>
+              
+            </div>
           
 
         </nav>
