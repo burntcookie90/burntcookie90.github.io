@@ -67,7 +67,7 @@ This is especially usefu">
 <meta property="og:description" content="Kotlin and Reactive Extensions (Rx) are the new hotness in Android development, and not without reason.
 Both technologies are loved for being concise, expressive and powerful.
 This is especially usefu">
-<meta property="og:updated_time" content="2016-02-13T20:23:27.296Z">
+<meta property="og:updated_time" content="2016-02-13T20:25:38.427Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Using Kotlin Extensions for Rx-ifying">
 <meta name="twitter:description" content="Kotlin and Reactive Extensions (Rx) are the new hotness in Android development, and not without reason.
@@ -266,8 +266,8 @@ This feature comes in handy quite often when working with APIs that are not yet 
 <p>And the calling code:</p>
 <p><figure class="highlight kotlin"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">slidingUpPanel.panelSlides()</span><br><span class="line">	.map &#123; it.event &#125;</span><br><span class="line">	.filter &#123;it == PanelEvent.COLLAPSED &#125;</span><br><span class="line">	.subscribe &#123;</span><br><span class="line">		Timber.d(<span class="string">"panel closed"</span>)</span><br><span class="line">	&#125;</span><br></pre></td></tr></table></figure></p>
 <p>Now you have the power of RxJava's composibility and concise syntax availble to you, without losing the context of the action itself.</p>
-<p>Plus, because of Kotlin and Java's interoperability we can also use this extension from Java code as a &quot;Util&quot;.</p>
 <h2>Java Interop</h2>
+<p>Because of Kotlin and Java's interoperability we can also use this extension from Java code as a &quot;Util&quot; class.</p>
 <p>Add the following to the top of the extension file (otherwise it'll use <code>&lt;FileName&gt;Kt</code> as the classname)</p>
 <p><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">@file:JvmName(&#34;SlidingUpPanelLayoutUtils&#34;)</span><br></pre></td></tr></table></figure></p>
 <p>And now from java code you can do the following</p>
