@@ -472,9 +472,11 @@ body {
   margin: 20px auto;
   max-width: 700px;
 }
-@media (min-width: 1600px) {
-  .container .footer-inner {
-    width: 900px;
+@media (max-width: 767px) {
+  .main-inner,
+  .header-inner,
+  .footer-inner {
+    width: auto;
   }
 }
 pre,
@@ -1528,7 +1530,7 @@ pre .javascript .function {
   width: 4px;
   height: 4px;
   border-radius: 50%;
-  background: #fffbb6;
+  background: #d5dbde;
 }
 .sidebar-nav {
   margin: 0 0 20px;
