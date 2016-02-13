@@ -177,15 +177,6 @@
 
     
     
-      
-      
-        
-        
-        
-      
-
-      
-    
 
     
       
@@ -248,29 +239,15 @@
 
       
         
-          
-            <p>Kotlin and Reactive Extensions (Rx) are the new hotness in Android development, and not without reason.
+          <p>Kotlin and Reactive Extensions (Rx) are the new hotness in Android development, and not without reason.
 Both technologies are loved for being concise, expressive and powerful.
 This is especially useful in the Android world where APIs can be long-winded and filled with ceremony.</p>
-<p>&lt;!-- more --&gt;</p>
-<p>One of the main features that I've fallen in love with while using Kotlin is class extensions (<a href="https://kotlinlang.org/docs/reference/extensions.html" target="_blank" rel="external">docs</a>).
-This feature comes in handy quite often when working with APIs that are not yet RxJava compatible in a project that is using RxJava extensively.</p>
-<p>Let's take a look at a simple example when using the <a href="https://github.com/umano/AndroidSlidingUpPanel" target="_blank" rel="external">SlidingUpPanel</a> library.</p>
-<p>One of the things you might want to do when using this library is listen for panel events such as expanding and collapsing of the panel.</p>
-<p>When doing this without RxJava you get the following codeblock</p>
-<p><figure class="highlight kotlin"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">linkPanel.setPanelSlideListener(<span class="keyword">object</span>: SlidingUpPanelLayout.PanelSlideListener &#123;</span><br><span class="line">	<span class="keyword">override</span> <span class="function"><span class="keyword">fun</span> <span class="title">onPanelExpanded</span><span class="params">(p0 : <span class="typename">View?</span>)</span> &#123;</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">override</span> <span class="function"><span class="keyword">fun</span> <span class="title">onPanelSlide</span><span class="params">(p0 : <span class="typename">View?, p1 : Float</span>)</span> &#123;</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">override</span> <span class="function"><span class="keyword">fun</span> <span class="title">onPanelCollapsed</span><span class="params">(p0 : <span class="typename">View?</span>)</span> &#123;</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">override</span> <span class="function"><span class="keyword">fun</span> <span class="title">onPanelHidden</span><span class="params">(p0 : <span class="typename">View?</span>)</span> &#123;</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">override</span> <span class="function"><span class="keyword">fun</span> <span class="title">onPanelAnchored</span><span class="params">(p0 : <span class="typename">View?</span>)</span> &#123;</span></span><br><span class="line">	&#125;</span><br><span class="line">&#125;)</span><br></pre></td></tr></table></figure></p>
-<p>This is a required implementation when you might only care about the expanded and collapsed state.</p>
-<p>So, lets move this into a Kotlin extension:</p>
-<p>We're going to start with a data class to model the panel events:</p>
-<p><figure class="highlight kotlin"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">enum</span> <span class="class"><span class="keyword">class</span> <span class="title">PanelEvent</span> </span>&#123; COLLAPSED, EXPANDED, HIDDEN, ANCHORED, SLIDE &#125;</span><br><span class="line">data <span class="class"><span class="keyword">class</span> <span class="title">PanelData</span></span>(<span class="variable"><span class="keyword">val</span> event</span> : PanelEvent, <span class="variable"><span class="keyword">val</span> panel</span> : View?, <span class="variable"><span class="keyword">val</span> slideOffset</span> : <span class="typename">Float</span>? = <span class="literal">null</span>)</span><br></pre></td></tr></table></figure></p>
-<p>Now the actual class extension:</p>
-<p><figure class="highlight"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">fun SlidingUpPanelLayout.panelSlides() : Observable&lt;PanelData&gt; &#123;</span><br><span class="line">	return Observable.defer&lt;PanelData&gt; &#123;</span><br><span class="line">		Observable.create &#123;</span><br><span class="line">			if (!it.isUnsubscribed) &#123;</span><br><span class="line">				setPanelSlideListener(object : SlidingUpPanelLayout.PanelSlideListener &#123;</span><br><span class="line">					override fun onPanelSlide(panel : View?, slideOffset : Float) = it.onNext(PanelData(PanelEvent.SLIDE, panel, slideOffset))</span><br><span class="line">					override fun onPanelExpanded(panel : View?) = it.onNext(PanelData(PanelEvent.EXPANDED, panel))</span><br><span class="line">					override fun onPanelCollapsed(panel : View?) = it.onNext(PanelData(PanelEvent.COLLAPSED, panel))</span><br><span class="line">					override fun onPanelHidden(panel : View?) = it.onNext(PanelData(PanelEvent.HIDDEN, panel))</span><br><span class="line">					override fun onPanelAnchored(panel : View?) = it.onNext(PanelData(PanelEvent.ANCHORED, panel))</span><br><span class="line">				&#125;)</span><br><span class="line"></span><br><span class="line">				it.add(object : MainThreadSubscription() &#123;</span><br><span class="line">					//we should null the listener when the subscriber unsubscribes</span><br><span class="line">					override fun onUnsubscribe() = setPanelSlideListener(null)</span><br><span class="line">				&#125;)</span><br><span class="line">			&#125;</span><br><span class="line">	&#125;&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
-<p>And the calling code:</p>
-<p><figure class="highlight kotlin"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">linkPanel.panelSlides()</span><br><span class="line">	.map &#123; it.event &#125;</span><br><span class="line">	.filter &#123;it == PanelEvent.COLLAPSED &#125;</span><br><span class="line">	.subscribe &#123;</span><br><span class="line">		Timber.d(<span class="string">"panel closed"</span>)</span><br><span class="line">	&#125;</span><br></pre></td></tr></table></figure></p>
-<p>Now you have the power of RxJava's composibility and concise syntax availble to you, without losing the context of the action itself.</p>
-<p>For more examples, checkout <a href="https://www.github.com/JakeWharton/RxBinding" target="_blank" rel="external">RxBinding</a> which has extensions for Android framework classes.</p>
-
-          
+<p>
+          <div class="post-more-link text-center">
+            <a class="btn" href="/2016/02/13/Using-Kotlin-Extensions-for-Rx-ifying/#more" rel="contents">
+              Read more &raquo;
+            </a>
+          </div>
         
       
     </div>
@@ -349,51 +326,16 @@ This feature comes in handy quite often when working with APIs that are not yet 
 
       
         
-          
-            <p>A simple pain point I always seemed to encounter when developing for Android is dealing with multiple items types in a <code>ListView</code> or a <code>GridView</code>.
+          <p>A simple pain point I always seemed to encounter when developing for Android is dealing with multiple items types in a <code>ListView</code> or a <code>GridView</code>.
 Luckily, <code>RecyclerView</code> has some pretty neat built in support for this feature, and I've used it successfully with collections containing &gt;10 item types.
 Adding that kind of complexity can lead to lots of ugly code in your adapter, and trying to keep that clean will help in maintainability and reduce possible bugs.
 Let's build a quick app that shows various fruits and veggies with specific styling for their type.</p>
-<p>&lt;!-- more --&gt;</p>
-<p>First off, lets start with the crux of the implementation: the Adapter's item model.</p>
-<p><figure class="highlight java"><figcaption><span>title:"FruitVegItem.java"</span></figcaption><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">FruitVegItem</span>&lt;<span class="title">T</span>&gt; </span>&#123;</span><br><span class="line">    <span class="annotation">@Retention</span>(RetentionPolicy.SOURCE)</span><br><span class="line">    <span class="annotation">@IntDef</span>(&#123;FRUIT, VEGETABLE&#125;)</span><br><span class="line">    <span class="keyword">public</span> <span class="annotation">@interface</span> ViewType &#123;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">int</span> FRUIT = <span class="number">0</span>;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">int</span> VEGETABLE = <span class="number">1</span>;</span><br><span class="line"></span><br><span class="line">    T object;</span><br><span class="line">    <span class="annotation">@ViewType</span> <span class="keyword">int</span> viewType;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">FruitVegItem</span><span class="params">(T object, <span class="keyword">int</span> viewType)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">this</span>.object = object;</span><br><span class="line">        <span class="keyword">this</span>.viewType = viewType;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
-<p>Using this object, we can wrap the item's model and have it specify it's item type for the adapter.</p>
-<p>Next, let's use it in the adapter:</p>
-<p><figure class="highlight java"><figcaption><span>title:"FruitVegAdapter.java"</span></figcaption><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">final</span> List&lt;FruitVegItem&gt; list;</span><br><span class="line"></span><br><span class="line">...</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">addFruit</span><span class="params">(String fruitName)</span></span>&#123;</span><br><span class="line">        list.add(<span class="keyword">new</span> FruitVegItem&lt;&gt;(fruitName, FruitVegItem.FRUIT));</span><br><span class="line">        notifyItemInserted(list.size());</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">...</span><br></pre></td></tr></table></figure></p>
-<p>By exposing a simple API for each item type, the adapter can control how and where each item is added into it's backing collection.</p>
-<h2>ViewHolders</h2>
-<p>Since we have different items, it makes sense to have different item <code>ViewHolder</code> objects and layouts.</p>
-<p><figure class="highlight java"><figcaption><span>title:"FruitViewHolder.java"</span></figcaption><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">FruitViewHolder</span> <span class="keyword">extends</span> <span class="title">RecyclerView</span>.<span class="title">ViewHolder</span></span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> TextView name;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">FruitViewHolder</span><span class="params">(View itemView)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">super</span>(itemView);</span><br><span class="line">        name = (TextView) itemView.findViewById(R.id.name);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> FruitViewHolder <span class="title">create</span><span class="params">(Context context, ViewGroup parent)</span></span>&#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">new</span> FruitViewHolder(LayoutInflater.from(context).inflate(R.layout.item_fruit_veg, parent, <span class="keyword">false</span>));</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">bind</span><span class="params">(FruitViewHolder holder, <span class="keyword">final</span> String name)</span></span>&#123;</span><br><span class="line">        holder.itemView.setBackgroundResource(R.color.fruit_bg);</span><br><span class="line">        holder.name.setText(name);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
-<p><figure class="highlight xml"><figcaption><span>title:"item_fruit_veg.xml"</span></figcaption><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="pi">&lt;?xml version="1.0" encoding="utf-8"?&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="title">LinearLayout</span> <span class="attribute">xmlns:android</span>=<span class="value">"http://schemas.android.com/apk/res/android"</span></span><br><span class="line">              <span class="attribute">android:orientation</span>=<span class="value">"vertical"</span></span><br><span class="line">              <span class="attribute">android:layout_width</span>=<span class="value">"match_parent"</span></span><br><span class="line">              <span class="attribute">android:layout_height</span>=<span class="value">"match_parent"</span>&gt;</span></span><br><span class="line"></span><br><span class="line">    <span class="tag">&lt;<span class="title">TextView</span></span><br><span class="line">        <span class="attribute">android:id</span>=<span class="value">"@+id/name"</span></span><br><span class="line">        <span class="attribute">android:gravity</span>=<span class="value">"center"</span></span><br><span class="line">        <span class="attribute">android:padding</span>=<span class="value">"8dp"</span></span><br><span class="line">        <span class="attribute">android:layout_width</span>=<span class="value">"match_parent"</span></span><br><span class="line">        <span class="attribute">android:layout_height</span>=<span class="value">"match_parent"</span>/&gt;</span></span><br><span class="line"></span><br><span class="line"><span class="tag">&lt;/<span class="title">LinearLayout</span>&gt;</span></span><br></pre></td></tr></table></figure></p>
-<p>The key in the <code>ViewHolder</code> object is that it exposes static <code>create</code> and <code>bind</code> method calls.
-The <code>create</code> method is just a static factory method, a common practice in Java.
-The <code>bind</code> method, however, allows use to abstract all <code>ViewHolder</code> binding logic into the object itself, rather than polluting the adapter's <code>#onBindViewHolder</code> method.</p>
-<h2>Adapter</h2>
-<p>Now that we've setup the wrapper object and the viewholder logic, lets take a look at what the adapter has to do to button all this up.</p>
-<p>First off, make sure you override the <code>RecyclerView.Adapter#getItemViewType</code> method.
-This method lets the adapter know to expect multiple view types and not attempt to use a recycled <code>ViewHolder</code> of the wrong type.</p>
-<p><figure class="highlight java"><figcaption><span>title:"FruitVegAdapter.java"</span></figcaption><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">...</span><br><span class="line"><span class="annotation">@Override</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">int</span> <span class="title">getItemViewType</span><span class="params">(<span class="keyword">int</span> position)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> list.get(position).viewType;</span><br><span class="line">&#125;</span><br><span class="line">...</span><br></pre></td></tr></table></figure></p>
-<p>Finally, the adapter needs to actually create and bind the view holders:</p>
-<p><figure class="highlight java"><figcaption><span>title:"FruitVegAdapter.java"</span></figcaption><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="annotation">@Override</span></span><br><span class="line"><span class="keyword">public</span> RecyclerView.<span class="function">ViewHolder <span class="title">onCreateViewHolder</span><span class="params">(ViewGroup viewGroup, <span class="keyword">int</span> viewType)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">switch</span> (viewType)&#123;</span><br><span class="line">        <span class="keyword">case</span> FruitVegItem.FRUIT:</span><br><span class="line">            <span class="keyword">return</span> FruitViewHolder.create(context, viewGroup);</span><br><span class="line">        <span class="keyword">case</span> FruitVegItem.VEGETABLE:</span><br><span class="line">            <span class="keyword">return</span> VegViewHolder.create(context, viewGroup);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="annotation">@Override</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">onBindViewHolder</span><span class="params">(RecyclerView.ViewHolder viewHolder, <span class="keyword">int</span> position)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">switch</span> (getItemViewType(position))&#123;</span><br><span class="line">        <span class="keyword">case</span> FruitVegItem.FRUIT:</span><br><span class="line">            FruitViewHolder.bind((FruitViewHolder) viewHolder,</span><br><span class="line">                                 (String) list.get(position).object,</span><br><span class="line">                                 listener);</span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">        <span class="keyword">case</span> FruitVegItem.VEGETABLE:</span><br><span class="line">            VegViewHolder.bind((VegViewHolder) viewHolder,</span><br><span class="line">                               (String) list.get(position).object,</span><br><span class="line">                               listener);</span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line"></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
-<h2>Finale</h2>
-<p>Now you get to use it:</p>
-<p><figure class="highlight java"><figcaption><span>title:"MainActivity.java"</span></figcaption><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">String[] fruits = getResources().getStringArray(R.array.fruits);</span><br><span class="line">String[] veggies = getResources().getStringArray(R.array.vegetables);</span><br><span class="line"></span><br><span class="line"><span class="keyword">for</span> (String veg : veggies) &#123;</span><br><span class="line">    adapter.addVeg(veg);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">for</span> (String fruit : fruits) &#123;</span><br><span class="line">    adapter.addFruit(fruit);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">recyclerView.setAdapter(adapter);</span><br></pre></td></tr></table></figure></p>
-<p>What it ends up looking like:</p>
-<p><img src="/images/multi_item_recyclerview_list.png" alt=""></p>
-<p>From here, adding new item types is quite simple:</p>
-<ul>
-<li>Add a <code>ViewType</code> to the <code>FruitVegItem</code></li>
-<li>Create your <code>ViewHolder</code> and layout</li>
-<li>Hook it all up in the adapter</li>
-</ul>
-<h2>Encore</h2>
-<p>When you start using viewtypes like this, you can create some pretty fun, complicated layouts easily via the <code>GridLayoutManager</code></p>
-<p>For example:</p>
-<p><figure class="highlight java"><figcaption><span>title:"MainActivity.java"</span></figcaption><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">gridLayoutManager.setSpanSizeLookup(<span class="keyword">new</span> GridLayoutManager.SpanSizeLookup() &#123;</span><br><span class="line">          <span class="annotation">@Override</span></span><br><span class="line">          <span class="function"><span class="keyword">public</span> <span class="keyword">int</span> <span class="title">getSpanSize</span><span class="params">(<span class="keyword">int</span> position)</span> </span>&#123;</span><br><span class="line">              <span class="keyword">switch</span>(adapter.getItemViewType(position))&#123;</span><br><span class="line">                  <span class="keyword">case</span> FruitVegItem.FRUIT:</span><br><span class="line">                      <span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line">                  <span class="keyword">case</span> FruitVegItem.VEGETABLE:</span><br><span class="line">                      <span class="keyword">return</span> <span class="number">3</span>;</span><br><span class="line">              &#125;</span><br><span class="line">              <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">          &#125;</span><br><span class="line">      &#125;);</span><br></pre></td></tr></table></figure></p>
-<p><img src="/images/multi_item_recyclerview_grid.png" alt=""></p>
-<p>You can view the full code (plus click listener implementations) on <a href="https://github.com/burntcookie90/multiitemrecyclerview/" target="_blank" rel="external">github</a></p>
-
-          
+<p>
+          <div class="post-more-link text-center">
+            <a class="btn" href="/2015/07/12/using-recyclerview-with-multiple-items/#more" rel="contents">
+              Read more &raquo;
+            </a>
+          </div>
         
       
     </div>
@@ -491,27 +433,18 @@ This method lets the adapter know to expect multiple view types and not attempt 
 
       
         
-          
-            <p>So after seeing this <a href="http://www.reddit.com/r/androiddev/comments/2cfcdl/demo_app_for_using_facebooks_rebound_animation/" target="_blank" rel="external">post</a>
+          <p>So after seeing this <a href="http://www.reddit.com/r/androiddev/comments/2cfcdl/demo_app_for_using_facebooks_rebound_animation/" target="_blank" rel="external">post</a>
 on reddit the other day, I decided I'd try and utilize Rebound for the link drawer in my Hacker News app. Currently, the app uses
 a basic translate animation on the <a href="https://github.com/dinosaurwithakatana/holo_hacker_news/blob/9b6324cb9611058d99c35232e008d3935536c535/app/src/main/java/io/dwak/holohackernews/app/StoryLinkFragment.java" target="_blank" rel="external">StoryLinkFragment</a>
 when the &quot;Show Link&quot; button is pressed.</p>
 <p>The simple translate animation is as follows:</p>
 <p><figure class="highlight xml"><figcaption><span>title:"Translate Slide Up" </span></figcaption><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="title">set</span> <span class="attribute">xmlns:android</span>=<span class="value">"http://schemas.android.com/apk/res/android"</span></span><br><span class="line">     <span class="attribute">android:shareInterpolator</span>=<span class="value">"false"</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="title">translate</span> <span class="attribute">android:fromXDelta</span>=<span class="value">"0%"</span> <span class="attribute">android:toXDelta</span>=<span class="value">"0%"</span></span><br><span class="line">               <span class="attribute">android:fromYDelta</span>=<span class="value">"0%"</span> <span class="attribute">android:toYDelta</span>=<span class="value">"-100%"</span></span><br><span class="line">               <span class="attribute">android:duration</span>=<span class="value">"@integer/fragment_animation_times"</span>/&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="title">set</span>&gt;</span></span><br></pre></td></tr></table></figure></p>
-<p>&lt;!-- more --&gt;</p>
-<p>The animation ends up looking like this:</p>
-<p><a href="http://zippy.gfycat.com/QualifiedImportantChimneyswift.webm" target="_blank" rel="external">gfy</a></p>
-<p>I consider this a bare minimum animation, gets the job done in showing the user a new view, but has no easing or natural motion to it.</p>
-<p>Rebound handles this issue by utilizing spring physics on the views, as seen <a href="https://facebook.github.io/rebound/" target="_blank" rel="external">here</a>.
-In order to improve the earlier animation, I created a <a href="https://developer.android.com/reference/android/widget/RelativeLayout.html" target="_blank" rel="external">RelativeLayout</a> that has the spring physics built in.</p>
-<p>The code for ReboundRevealRelativeLayout follows (it could probably use a bit of cleanup):</p>
-<p><script src="//gist.github.com/9205af0ac88f33039f60.js"></script></p>
-<p>Using this layout for the link view ends up looking like this:</p>
-<p><a href="http://zippy.gfycat.com/FavoriteFarHummingbird.webm" target="_blank" rel="external">gfy</a></p>
-<p>Comparing the two, it's easy to see the improvement in the motion on the drawer reveal. It's a simple animation but the little things count towards creating a pleasing user experience.</p>
-<p>The fragment code that controls this view can be found <a href="https://github.com/dinosaurwithakatana/holo_hacker_news/blob/950fd554071afa875eb5f49c016d21e04aa09f37/app/src/main/java/io/dwak/holohackernews/app/StoryCommentsFragment.java" target="_blank" rel="external">here</a>.</p>
-
-          
+<p>
+          <div class="post-more-link text-center">
+            <a class="btn" href="/2014/08/06/rebound-for-android-view-animations/#more" rel="contents">
+              Read more &raquo;
+            </a>
+          </div>
         
       
     </div>
@@ -609,43 +542,14 @@ In order to improve the earlier animation, I created a <a href="https://develope
 
       
         
-          
-            <p>Going to start off with the <code>.travis.yml</code> file and then explain it.</p>
+          <p>Going to start off with the <code>.travis.yml</code> file and then explain it.</p>
 <p><script src="//gist.github.com/a270cab5d37ccbc0adbf.js"></script></p>
-<p>&lt;!-- more --&gt;</p>
-<p>This was based off the configuration found <a href="https://github.com/daimajia/AndroidImageSlider/blob/master/.travis.yml" target="_blank" rel="external">here</a>.</p>
-<p>The reason this has to be done stems from this <a href="https://github.com/travis-ci/travis-ci/issues/2470" target="_blank" rel="external">issue</a> on the travis-ci project. Unfortunately, this is a temporary workaround as the travis team needs to find a way to update their images.</p>
-<ul>
-<li>
-<p><code>env</code></p>
-<ul>
-<li><code>ANDROID_TARGET</code> : the source travis config uses <code>android-20</code>, however I chose to use <code>android-L</code> as that's what is used in the <code>build.gradle</code> file as well.</li>
-</ul>
-</li>
-<li>
-<p><code>before_install</code> : this grabs the new android sdk and updates it for use on this build</p>
-</li>
-<li>
-<p><code>before_script</code> : this is used specifically for my <a href="https://github.com/dinosaurwithakatana/holo_hacker_news" target="_blank" rel="external">repository</a> as I have specific properties for the build.</p>
-</li>
-<li>
-<p><code>script</code> : utilize the gradle wrapper which will automatically get the correct gradle binary and execute the build</p>
-</li>
-<li>
-<p><code>deploy</code> : based on the <a href="http://docs.travis-ci.com/user/deployment/releases/" target="_blank" rel="external">guide</a></p>
-<ul>
-<li>I personally started this section using the travis cli tool and the command <code>travis setups releases</code></li>
-<li><code>file</code> : use the <code>${TRAVIS_BUILD_DIR}</code> env var to get the root dir and append the gradle output dir to the string, no plus sign or quotations necessary.</li>
-<li><code>on</code> : this is used for conditional deployments
-<ul>
-<li><code>tags</code> set to true makes sure the deployment only occurs on tags, this requires the <code>all_branches</code> prop as well due to a known <a href="https://github.com/travis-ci/travis-ci/issues/1675" target="_blank" rel="external">issue</a>.</li>
-</ul>
-</li>
-</ul>
-</li>
-</ul>
-
-          
+<p>
+          <div class="post-more-link text-center">
+            <a class="btn" href="/2014/07/28/building-and-deploying-for-android-l-on-travis/#more" rel="contents">
+              Read more &raquo;
+            </a>
+          </div>
         
       
     </div>
